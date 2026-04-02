@@ -120,8 +120,9 @@ btnFetchEmp.addEventListener("click", async () => {
   btnFetchEmp.innerHTML = `${spinner()} Ophalen...`;
   empStatusEl.innerHTML = "";
   try {
-    const data = await sbFetch("/employees?limit=250");
-    employees = data.data || data.employees || data || [];
+    const data = await sbFetch("/users?limit=250");
+    const raw = data.data || data.users || data || [];
+    employees = raw.map(item => item.User || item);
     console.log("Employees:", employees);
     empStatusEl.innerHTML = `<div class="status-bar status-ok">✓ ${employees.length} medewerkers</div>`;
     if (shifts) renderShifts();

@@ -7,7 +7,7 @@ exports.handler = async function (event) {
   // e.g. /.netlify/functions/shiftbase/employees?limit=250
   const sbPath = event.path.replace(/^.*\/shiftbase/, "") || "/";
   const query  = event.rawQuery ? "?" + event.rawQuery : "";
-  const url    = `https://app.shiftbase.com/v2${sbPath}${query}`;
+  const url    = `https://api.shiftbase.com/api${sbPath}${query}`;
 
   const sbKey = event.headers["x-sb-key"] || "";
 
