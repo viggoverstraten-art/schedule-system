@@ -366,15 +366,20 @@ btnRun.addEventListener("click", async () => {
       }
     }
 
-    // Stap 4: zoek of maak een shift-template aan binnen de afdeling
+    // Stap 4: zoek of maak een shift-template aan binnen de afdeling op locatienaam
     let shiftId = null;
     try {
       const sd = await sbFetch(`/shifts?department_id=${departmentId}`);
       const rawShifts = sd.data || sd.shifts || sd || [];
       const deptShifts = rawShifts.map(s => s.Shift || s);
-      if (deptShifts.length > 0) {
-        shiftId = String(deptShifts[0].id);
-        log(`  Shift template gevonden (id: ${shiftId})`, "ok");
+      const locLower = shift.location.toLowerCase();
+      const found = deptShifts.find(s =>
+        (s.long_name && s.long_name.toLowerCase() === locLower) ||
+        (s.name && s.name.toLowerCase() === locLower)
+      );
+      if (found) {
+        shiftId = String(found.id);
+        log(`  Shift "${shift.location}" bestaat al (id: ${shiftId})`, "ok");
       }
     } catch (e) {
       log(`  Shifts ophalen mislukt (doorgaan): ${e.message}`, "warn");
@@ -387,9 +392,9 @@ btnRun.addEventListener("click", async () => {
           body: JSON.stringify({
             Shift: {
               department_id: departmentId,
-              name: odrName.substring(0, 10),
-              long_name: odrName,
-              description: remark || odrName,
+              name: shift.location.substring(0, 10),
+              long_name: shift.location,
+              description: remark || shift.location,
               starttime: `${SHIFT_START}:00`,
               endtime: `${SHIFT_END}:00`,
             }
