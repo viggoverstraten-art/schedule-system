@@ -190,8 +190,9 @@ btnParse.addEventListener("click", async () => {
       }]
     });
 
+    if (d.error) throw new Error(`Claude API fout: ${d.error.message || JSON.stringify(d.error)}`);
     const txt = (d.content || []).find(b => b.type === "text");
-    if (!txt) throw new Error("Geen respons van Claude");
+    if (!txt) throw new Error(`Geen respons van Claude (status: ${d.type || "onbekend"}, stop_reason: ${d.stop_reason || "?"})`);
 
     const parsed = JSON.parse(txt.text.replace(/```json|```/g, "").trim());
     shifts = parsed.map(s => ({
