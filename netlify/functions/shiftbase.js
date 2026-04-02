@@ -16,7 +16,7 @@ exports.handler = async function (event) {
       method: event.httpMethod,
       headers: {
         "Content-Type": "application/json",
-        "X-Api-Key": sbKey,
+        "Authorization": `API ${sbKey}`,
       },
       body: ["POST", "PUT", "PATCH"].includes(event.httpMethod) ? event.body : undefined,
     });
