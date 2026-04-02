@@ -9,7 +9,8 @@ Elk blok heeft:
 - Een meldtijd + context (bijv. "6:15 zaak", "7 uur aanwezig", "6:00 zaak")
   De tijd (HH:MM) is het MELDTIJDSTIP, niet de werktijd. Dit gaat in de beschrijving.
   De context (zaak, aanwezig, etc.) hoort ook bij de beschrijving.
-- Optioneel een voertuig (bijv. "Grijze bus", "Witte bus", "Pu 2 + aanganger")
+- Optioneel één of meerdere voertuigen (bijv. "Grijze bus", "Witte bus", "Pu 2 + aanganger")
+  Er kunnen meerdere voertuigen op aparte regels staan, neem ze allemaal mee.
 - Namen van medewerkers
 
 Geef terug als JSON array met per shift:
@@ -17,7 +18,7 @@ Geef terug als JSON array met per shift:
 - location: adres/locatienaam
 - reportTime: meldtijd als "HH:MM" of null
 - reportContext: context bij de meldtijd (bijv. "zaak", "aanwezig") of null
-- vehicle: voertuig of null
+- vehicles: array van voertuigen (leeg array als geen voertuig)
 - employees: array van namen
 
 Geef ALLEEN de JSON array terug, geen uitleg of markdown.`;
@@ -98,7 +99,8 @@ function buildRemark(shift) {
     const ctx = shift.reportContext ? ` ${shift.reportContext}` : "";
     parts.push(`Melden ${shift.reportTime}${ctx}`);
   }
-  if (shift.vehicle) parts.push(shift.vehicle);
+  const vehicles = shift.vehicles || (shift.vehicle ? [shift.vehicle] : []);
+  if (vehicles.length > 0) parts.push(vehicles.join(", "));
   return parts.join(" | ");
 }
 
@@ -270,7 +272,7 @@ function renderShifts() {
           <div class="badges">
             <span class="badge badge-purple">⏰ Melden ${shift.reportTime || "—"}</span>
             ${shift.reportContext ? `<span class="badge badge-purple">${shift.reportContext}</span>` : ""}
-            ${shift.vehicle ? `<span class="badge badge-blue">🚌 ${shift.vehicle}</span>` : ""}
+            ${(shift.vehicles || (shift.vehicle ? [shift.vehicle] : [])).map(v => `<span class="badge badge-blue">🚌 ${v}</span>`).join("")}
             <span class="badge badge-green">Shift ${SHIFT_START} → ${SHIFT_END}</span>
           </div>
         </div>
