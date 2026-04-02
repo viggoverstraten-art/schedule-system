@@ -30,9 +30,7 @@ let imgBase64  = null;
 let imgMimeType = "image/jpeg";
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
-const sbKeyEl     = document.getElementById("sbKey");
 const dateEl      = document.getElementById("shiftDate");
-const btnFetchEmp = document.getElementById("btnFetchEmp");
 const empStatusEl = document.getElementById("empStatus");
 const uploadZone  = document.getElementById("uploadZone");
 const fileInput   = document.getElementById("fileInput");
@@ -70,7 +68,6 @@ function sbFetch(path, opts = {}) {
     ...opts,
     headers: {
       "Content-Type": "application/json",
-      "X-Sb-Key": sbKeyEl.value.trim(),
       ...(opts.headers || {})
     }
   }).then(async res => {
@@ -119,26 +116,20 @@ function spinner(white = false) {
   return `<span class="spinner${white ? " spinner-w" : ""}"></span>`;
 }
 
-// ── Fetch employees ───────────────────────────────────────────────────────────
-btnFetchEmp.addEventListener("click", async () => {
-  if (!sbKeyEl.value.trim()) return;
-  btnFetchEmp.disabled = true;
-  btnFetchEmp.innerHTML = `${spinner()} Ophalen...`;
-  empStatusEl.innerHTML = "";
+// ── Fetch employees (automatisch bij laden) ───────────────────────────────────
+async function fetchEmployees() {
+  empStatusEl.innerHTML = `<span style="opacity:.6">${spinner()} Medewerkers laden...</span>`;
   try {
     const data = await sbFetch("/users?limit=250");
     const raw = data.data || data.users || data || [];
     employees = raw.map(item => item.User || item);
-    console.log("Employees:", employees);
-    empStatusEl.innerHTML = `<div class="status-bar status-ok">✓ ${employees.length} medewerkers</div>`;
+    empStatusEl.innerHTML = `<div class="status-bar status-ok">✓ ${employees.length} medewerkers geladen</div>`;
     if (shifts) renderShifts();
   } catch (e) {
     empStatusEl.innerHTML = `<div class="status-bar status-err">✗ ${e.message}</div>`;
-  } finally {
-    btnFetchEmp.disabled = false;
-    btnFetchEmp.innerHTML = "👥 Opvragen medewerkers";
   }
-});
+}
+fetchEmployees();
 
 // ── Image upload ──────────────────────────────────────────────────────────────
 fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
@@ -285,7 +276,7 @@ function renderShifts() {
   }).join("");
 
   runRow.style.display = "flex";
-  btnRun.disabled = mappedEmp === 0 || !sbKeyEl.value.trim();
+  btnRun.disabled = mappedEmp === 0;
   runWarning.textContent = mappedEmp < totalEmp ? `⚠ ${totalEmp - mappedEmp} medewerker(s) niet gekoppeld` : "";
 
   shiftsCont.querySelectorAll("[data-remove]").forEach(btn =>
@@ -308,7 +299,7 @@ function updateStats() {
   const totalEmp  = shifts.reduce((a, s) => a + Object.keys(s.employeeMap).length, 0);
   const mappedEmp = shifts.reduce((a, s) => a + Object.values(s.employeeMap).filter(Boolean).length, 0);
   shiftsLabel.innerHTML = `Shifts <span style="color:#444;margin-left:8px">— ${shifts.length} locatie(s) · ${mappedEmp}/${totalEmp} gekoppeld</span>`;
-  btnRun.disabled = mappedEmp === 0 || !sbKeyEl.value.trim();
+  btnRun.disabled = mappedEmp === 0;
   runWarning.textContent = mappedEmp < totalEmp ? `⚠ ${totalEmp - mappedEmp} medewerker(s) niet gekoppeld` : "";
 }
 

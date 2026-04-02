@@ -9,7 +9,7 @@ exports.handler = async function (event) {
   const query  = event.rawQuery ? "?" + event.rawQuery : "";
   const url    = `https://api.shiftbase.com/api${sbPath}${query}`;
 
-  const sbKey = event.headers["x-sb-key"] || "";
+  const sbKey = process.env.SB_API_KEY || "";
 
   try {
     const res = await fetch(url, {
