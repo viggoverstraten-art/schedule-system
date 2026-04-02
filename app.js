@@ -316,20 +316,7 @@ btnRun.addEventListener("click", async () => {
 
   const date = dateEl.value;
 
-  // Stap 1: haal het ene team op
-  log("Team ophalen...", "info");
-  let teamId = null;
-  try {
-    const td = await sbFetch("/teams");
-    const rawTeams = td.data || td.teams || td || [];
-    const teams = rawTeams.map(t => t.Team || t);
-    if (teams.length === 0) throw new Error("Geen teams gevonden");
-    teamId = String(teams[0].id);
-    log(`Team "${teams[0].name}" gevonden (id: ${teamId})`, "ok");
-  } catch (e) {
-    log("Team ophalen mislukt: " + e.message, "err");
-    btnRun.disabled = false; btnRun.textContent = "🚀 Verwerk alle shifts"; return;
-  }
+  // team wordt per afdeling opgehaald (moet matchen met department)
 
   // Stap 2: haal alle bestaande afdelingen op
   log("Afdelingen ophalen...", "info");
@@ -370,7 +357,20 @@ btnRun.addEventListener("click", async () => {
       }
     }
 
-    // Stap 4: zoek of maak een shift-template aan binnen de afdeling op locatienaam
+    // Stap 4: haal team op dat bij deze afdeling hoort
+    let teamId = null;
+    try {
+      const td = await sbFetch(`/teams?department_id=${departmentId}`);
+      const rawTeams = td.data || td.teams || td || [];
+      const teams = rawTeams.map(t => t.Team || t);
+      if (teams.length === 0) throw new Error("Geen team gevonden voor afdeling");
+      teamId = String(teams[0].id);
+      log(`  Team "${teams[0].name}" gevonden (id: ${teamId})`, "ok");
+    } catch (e) {
+      log(`  ✗ Team ophalen mislukt: ${e.message}`, "err"); continue;
+    }
+
+    // Stap 6: zoek of maak een shift-template aan binnen de afdeling op locatienaam
     let shiftId = null;
     try {
       const sd = await sbFetch(`/shifts?department_id=${departmentId}`);
@@ -413,7 +413,7 @@ btnRun.addEventListener("click", async () => {
       }
     }
 
-    // Stap 5: maak rooster aan per medewerker
+    // Stap 7: maak rooster aan per medewerker
     for (const [name, empId] of Object.entries(shift.employeeMap)) {
       if (!empId) { log(`  Overgeslagen: ${name} (niet gekoppeld)`, "warn"); continue; }
       try {
