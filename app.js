@@ -23,9 +23,10 @@ Geef terug als JSON array met per shift:
 Geef ALLEEN de JSON array terug, geen uitleg of markdown.`;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let employees = null;
-let shifts    = null;
-let imgBase64 = null;
+let employees  = null;
+let shifts     = null;
+let imgBase64  = null;
+let imgMimeType = "image/jpeg";
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const sbKeyEl     = document.getElementById("sbKey");
@@ -149,6 +150,7 @@ uploadZone.addEventListener("drop", e => {
 
 function handleFile(file) {
   if (!file) return;
+  imgMimeType = file.type || "image/jpeg";
   const reader = new FileReader();
   reader.onload = e => {
     imgBase64 = e.target.result.split(",")[1];
@@ -187,7 +189,7 @@ btnParse.addEventListener("click", async () => {
       messages: [{
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: "image/png", data: imgBase64 } },
+          { type: "image", source: { type: "base64", media_type: imgMimeType, data: imgBase64 } },
           { type: "text", text: PARSE_PROMPT }
         ]
       }]
