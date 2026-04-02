@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shiftbase Auto-Import</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <div class="header">
+      <h1>⬡ Shiftbase Auto-Import</h1>
+      <span class="sub">Planning → Teams → Shifts → Medewerkers</span>
+    </div>
+
+    <div class="section">
+      <div class="slabel">Configuratie</div>
+      <div class="row" style="margin-bottom:10px">
+        <input class="inp" id="sbKey" type="password" placeholder="Shiftbase API key" />
+        <input class="inp" id="shiftDate" type="date" style="max-width:180px" />
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="btnFetchEmp">👥 Opvragen medewerkers</button>
+        <span id="empStatus"></span>
+      </div>
+      <p class="hint" style="margin-top:8px">
+        Shift tijden zijn altijd <strong>07:00 → 16:00</strong>. Het meldtijdstip uit de foto gaat in de omschrijving.
+      </p>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section">
+      <div class="slabel">Planning foto</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*" />
+        <div style="font-size:26px;margin-bottom:8px">📷</div>
+        <div class="upload-text"><strong>Klik of sleep</strong> een planningsfoto</div>
+        <img id="imgPreview" class="preview-img" style="display:none" alt="" />
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <button class="btn btn-primary" id="btnParse" disabled>⚡ Parseer foto</button>
+        <button class="btn btn-ghost" id="btnClearImg" style="display:none">Wis foto</button>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section">
+      <div class="slabel" id="shiftsLabel">Shifts</div>
+      <div id="shiftsContainer"><div class="empty">Parseer eerst een foto</div></div>
+      <div id="runRow" style="display:none;margin-top:20px;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-green" id="btnRun">🚀 Verwerk alle shifts</button>
+        <span id="runWarning" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fbbf24"></span>
+      </div>
+    </div>
+
+    <div id="logSection" style="display:none">
+      <hr class="divider" />
+      <div class="section">
+        <div class="slabel">Verwerking log</div>
+        <div class="log" id="logBox"></div>
+      </div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
