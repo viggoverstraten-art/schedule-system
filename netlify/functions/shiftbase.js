@@ -5,7 +5,7 @@ exports.handler = async function (event) {
 
   // Path after /api/shiftbase → forward to Shiftbase
   // e.g. /.netlify/functions/shiftbase/employees?limit=250
-  const sbPath = event.path.replace("/.netlify/functions/shiftbase", "");
+  const sbPath = event.path.replace(/^.*\/shiftbase/, "") || "/";
   const query  = event.rawQuery ? "?" + event.rawQuery : "";
   const url    = `https://api.shiftbase.com/api/v2${sbPath}${query}`;
 
