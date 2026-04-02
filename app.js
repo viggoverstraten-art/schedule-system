@@ -310,84 +310,126 @@ btnRun.addEventListener("click", async () => {
   btnRun.innerHTML = `${spinner(true)} Verwerken...`;
   clearLog();
 
-  const teamCache = {};
   const date = dateEl.value;
 
-  log("Teams ophalen...", "info");
-  let existingTeams = [];
+  // Stap 1: haal het ene team op
+  log("Team ophalen...", "info");
+  let teamId = null;
   try {
-    const td = await sbFetch("/teams?limit=250");
-    existingTeams = td.data || td.teams || td || [];
-    log(`${existingTeams.length} bestaande teams gevonden`, "ok");
-  } catch (e) { log("Teams ophalen mislukt: " + e.message, "err"); btnRun.disabled = false; btnRun.textContent = "🚀 Verwerk alle shifts"; return; }
+    const td = await sbFetch("/teams");
+    const rawTeams = td.data || td.teams || td || [];
+    const teams = rawTeams.map(t => t.Team || t);
+    if (teams.length === 0) throw new Error("Geen teams gevonden");
+    teamId = String(teams[0].id);
+    log(`Team "${teams[0].name}" gevonden (id: ${teamId})`, "ok");
+  } catch (e) {
+    log("Team ophalen mislukt: " + e.message, "err");
+    btnRun.disabled = false; btnRun.textContent = "🚀 Verwerk alle shifts"; return;
+  }
 
-  log(`Shifts ophalen voor ${date}...`, "info");
-  let existingShifts = [];
+  // Stap 2: haal alle bestaande afdelingen op
+  log("Afdelingen ophalen...", "info");
+  let departments = [];
   try {
-    const sd = await sbFetch(`/shifts?start=${date}T00:00:00&end=${date}T23:59:59&limit=500`);
-    existingShifts = sd.data || sd.shifts || sd || [];
-    log(`${existingShifts.length} bestaande shifts gevonden`, "ok");
-  } catch (e) { log("Shifts ophalen mislukt (doorgaan): " + e.message, "warn"); }
+    const dd = await sbFetch("/departments");
+    const rawDepts = dd.data || dd.departments || dd || [];
+    departments = rawDepts.map(d => d.Department || d);
+    log(`${departments.length} afdelingen gevonden`, "ok");
+  } catch (e) {
+    log("Afdelingen ophalen mislukt: " + e.message, "err");
+    btnRun.disabled = false; btnRun.textContent = "🚀 Verwerk alle shifts"; return;
+  }
 
   for (const shift of shifts) {
     const remark = buildRemark(shift);
-    log(`── ${shift.location}`, "info");
+    const odrName = (shift.opdrachtgever || shift.location).trim();
+    log(`── ${odrName} | ${shift.location}`, "info");
 
-    let teamId = null;
-    if (shift.opdrachtgever) {
-      const odrName = shift.opdrachtgever.trim();
-      if (teamCache[odrName]) {
-        teamId = teamCache[odrName];
-        log(`  Team "${odrName}" al verwerkt`, "ok");
-      } else {
-        const found = existingTeams.find(t => t.name && t.name.toLowerCase() === odrName.toLowerCase());
-        if (found) {
-          teamId = found.id;
-          log(`  Team "${odrName}" bestaat al`, "ok");
-        } else {
-          try {
-            const nt = await sbFetch("/teams", { method: "POST", body: JSON.stringify({ name: odrName }) });
-            teamId = (nt.data || nt).id;
-            existingTeams.push({ id: teamId, name: odrName });
-            log(`  ✓ Team "${odrName}" aangemaakt`, "ok");
-          } catch (e) { log(`  ✗ Team aanmaken mislukt: ${e.message}`, "err"); }
-        }
-        if (teamId) teamCache[odrName] = teamId;
+    // Stap 3: zoek of maak de afdeling aan (opdrachtgever)
+    let departmentId = null;
+    const existingDept = departments.find(d => d.name && d.name.toLowerCase() === odrName.toLowerCase());
+    if (existingDept) {
+      departmentId = String(existingDept.id);
+      log(`  Afdeling "${odrName}" bestaat al (id: ${departmentId})`, "ok");
+    } else {
+      try {
+        const nd = await sbFetch("/departments", {
+          method: "POST",
+          body: JSON.stringify({ name: odrName })
+        });
+        const created = nd.data ? (nd.data.Department || nd.data) : (nd.Department || nd);
+        departmentId = String(created.id);
+        departments.push({ id: departmentId, name: odrName });
+        log(`  ✓ Afdeling "${odrName}" aangemaakt (id: ${departmentId})`, "ok");
+      } catch (e) {
+        log(`  ✗ Afdeling aanmaken mislukt: ${e.message}`, "err"); continue;
       }
     }
 
+    // Stap 4: zoek of maak een shift-template aan binnen de afdeling
     let shiftId = null;
-    const found = existingShifts.find(es =>
-      es.name && es.name.toLowerCase() === shift.location.toLowerCase() &&
-      (!teamId || es.team_id === teamId || es.department_id === teamId)
-    );
-    if (found) {
-      shiftId = found.id;
-      log(`  Shift "${shift.location}" bestaat al`, "ok");
-    } else {
-      try {
-        const body = { name: shift.location, start: `${date}T${SHIFT_START}:00`, end: `${date}T${SHIFT_END}:00`, remark };
-        if (teamId) body.team_id = teamId;
-        const ns = await sbFetch("/shifts", { method: "POST", body: JSON.stringify(body) });
-        shiftId = (ns.data || ns).id;
-        existingShifts.push({ id: shiftId, name: shift.location, team_id: teamId });
-        log(`  ✓ Shift aangemaakt — ${SHIFT_START}→${SHIFT_END} | "${remark}"`, "ok");
-      } catch (e) { log(`  ✗ Shift aanmaken mislukt: ${e.message}`, "err"); }
+    try {
+      const sd = await sbFetch(`/shifts?department_id=${departmentId}`);
+      const rawShifts = sd.data || sd.shifts || sd || [];
+      const deptShifts = rawShifts.map(s => s.Shift || s);
+      if (deptShifts.length > 0) {
+        shiftId = String(deptShifts[0].id);
+        log(`  Shift template gevonden (id: ${shiftId})`, "ok");
+      }
+    } catch (e) {
+      log(`  Shifts ophalen mislukt (doorgaan): ${e.message}`, "warn");
     }
 
-    for (const [name, empId] of Object.entries(shift.employeeMap)) {
-      if (!empId)   { log(`  Overgeslagen: ${name} (niet gekoppeld)`, "warn"); continue; }
-      if (!shiftId) { log(`  Overgeslagen: ${name} (geen shift ID)`, "warn"); continue; }
+    if (!shiftId) {
       try {
-        await sbFetch(`/shifts/${shiftId}/employees`, { method: "POST", body: JSON.stringify({ employee_id: Number(empId) }) });
-        log(`  ✓ ${name} gekoppeld`, "ok");
+        const ns = await sbFetch("/shifts", {
+          method: "POST",
+          body: JSON.stringify({
+            Shift: {
+              department_id: departmentId,
+              name: odrName.substring(0, 10),
+              long_name: odrName,
+              description: remark || odrName,
+              starttime: `${SHIFT_START}:00`,
+              endtime: `${SHIFT_END}:00`,
+            }
+          })
+        });
+        const created = ns.data ? (ns.data.Shift || ns.data) : (ns.Shift || ns);
+        shiftId = String(created.id);
+        log(`  ✓ Shift template aangemaakt (id: ${shiftId})`, "ok");
       } catch (e) {
-        try {
-          const body = { name: shift.location, employee_id: Number(empId), start: `${date}T${SHIFT_START}:00`, end: `${date}T${SHIFT_END}:00`, remark };
-          if (teamId) body.team_id = teamId;
-          await sbFetch("/shifts", { method: "POST", body: JSON.stringify(body) });
-          log(`  ✓ ${name} — persoonlijke shift aangemaakt`, "ok");
-        } catch (e2) { log(`  ✗ ${name}: ${e2.message}`, "err"); }
+        log(`  ✗ Shift aanmaken mislukt: ${e.message}`, "err"); continue;
+      }
+    }
+
+    // Stap 5: maak rooster aan per medewerker
+    for (const [name, empId] of Object.entries(shift.employeeMap)) {
+      if (!empId) { log(`  Overgeslagen: ${name} (niet gekoppeld)`, "warn"); continue; }
+      try {
+        await sbFetch("/rosters", {
+          method: "POST",
+          body: JSON.stringify({
+            Roster: {
+              id: null,
+              date,
+              department_id: departmentId,
+              user_id: [empId],
+              team_id: teamId,
+              shift_id: shiftId,
+              starttime: `${SHIFT_START}:00`,
+              endtime: `${SHIFT_END}:00`,
+              break: "0",
+              paid_break: "0",
+              description: remark || "",
+              recurring: false,
+            },
+            Notify: false
+          })
+        });
+        log(`  ✓ ${name} ingepland`, "ok");
+      } catch (e) {
+        log(`  ✗ ${name}: ${e.message}`, "err");
       }
       await new Promise(r => setTimeout(r, 150));
     }
