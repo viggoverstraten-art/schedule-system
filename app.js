@@ -396,11 +396,12 @@ btnRun.addEventListener("click", async () => {
           body: JSON.stringify({
             Shift: {
               department_id: departmentId,
-              name: shift.location.substring(0, 10),
+              name: shift.location.replace(/[^a-zA-Z0-9]/g, "").substring(0, 4).toUpperCase(),
               long_name: shift.location,
               description: remark || shift.location,
               starttime: `${SHIFT_START}:00`,
               endtime: `${SHIFT_END}:00`,
+              break: 0,
             }
           })
         });
