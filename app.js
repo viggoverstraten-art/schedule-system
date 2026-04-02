@@ -122,6 +122,7 @@ btnFetchEmp.addEventListener("click", async () => {
   try {
     const data = await sbFetch("/employees?limit=250");
     employees = data.data || data.employees || data || [];
+    console.log("Employees:", employees);
     empStatusEl.innerHTML = `<div class="status-bar status-ok">✓ ${employees.length} medewerkers</div>`;
     if (shifts) renderShifts();
   } catch (e) {
