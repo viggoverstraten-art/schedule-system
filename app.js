@@ -73,7 +73,10 @@ function sbFetch(path, opts = {}) {
     }
   }).then(async res => {
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    if (!res.ok) {
+      const detail = data.message || data.error || JSON.stringify(data);
+      throw new Error(`HTTP ${res.status}: ${detail}`);
+    }
     return data;
   });
 }
